@@ -1,0 +1,27 @@
+export const CUISINE_TYPES = [
+  'American',
+  'Asian',
+  'Chinese',
+  'Ethiopian',
+  'French',
+  'Greek',
+  'Indian',
+  'Italian',
+  'Japanese',
+  'Korean',
+  'Mediterranean',
+  'Mexican',
+  'Middle Eastern',
+  'Thai',
+  'Vietnamese',
+  'Raw',
+  'Bakery',
+  'Cafe',
+  'Fast Food',
+  'Fine Dining',
+  'Juice Bar',
+  'Soul Food',
+  'Other',
+] as const;
+
+export type CuisineType = (typeof CUISINE_TYPES)[number];
