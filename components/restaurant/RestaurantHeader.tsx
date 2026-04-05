@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Linking,
   Platform,
+  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Theme } from '@/constants/Theme';
@@ -40,12 +41,29 @@ export function RestaurantHeader({ restaurant }: RestaurantHeaderProps) {
   const handleDirections = () => {
     const { lat, lng } = restaurant.location;
     const label = encodeURIComponent(restaurant.name);
-    const url = Platform.select({
-      ios: `maps:0,0?q=${label}@${lat},${lng}`,
-      android: `geo:${lat},${lng}?q=${lat},${lng}(${label})`,
-      default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
-    });
-    if (url) Linking.openURL(url);
+
+    if (Platform.OS === 'ios') {
+      const appleMapsUrl = `maps:0,0?q=${label}@${lat},${lng}`;
+      const googleMapsUrl = restaurant.googlePlaceId
+        ? `https://www.google.com/maps/search/?api=1&query=${label}&query_place_id=${restaurant.googlePlaceId}`
+        : `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+      Alert.alert('Open Directions', 'Choose a maps app', [
+        {
+          text: 'Google Maps',
+          onPress: () => Linking.openURL(googleMapsUrl),
+        },
+        {
+          text: 'Apple Maps',
+          onPress: () => Linking.openURL(appleMapsUrl),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    } else if (Platform.OS === 'android') {
+      Linking.openURL(`geo:${lat},${lng}?q=${lat},${lng}(${label})`);
+    } else {
+      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+    }
   };
 
   return (
