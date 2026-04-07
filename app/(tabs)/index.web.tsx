@@ -4,7 +4,7 @@
  * Both render the same UI experience.
  */
 import { useEffect, useCallback, useState } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   GoogleMap,
@@ -21,6 +21,8 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorView } from '@/components/common/ErrorView';
 import { formatPriceLevel, formatRating } from '@/lib/utils/formatting';
 import { formatDistance } from '@/lib/utils/distance';
+import { LocationSearchModal } from '@/components/location/LocationSearchModal';
+import { Feather } from '@expo/vector-icons';
 import type { Restaurant } from '@/types/restaurant';
 
 const DEFAULT_CENTER = { lat: 37.7749, lng: -122.4194 };
@@ -33,10 +35,11 @@ const MAP_STYLES: google.maps.MapTypeStyle[] = [
 
 export default function MapScreenWeb() {
   const router = useRouter();
-  const { activeLocation } = useLocation();
+  const { activeLocation, isUsingCustomLocation, customLocationName, clearCustomLocation } = useLocation();
   const { restaurants, isLoading } = useRestaurants();
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: API_KEY,
@@ -61,11 +64,32 @@ export default function MapScreenWeb() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Vegan Finder</Text>
-        {activeLocation && (
-          <Text style={styles.headerSubtitle}>
-            {restaurants.length} restaurants nearby
-          </Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>Vegan Finder</Text>
+          <TouchableOpacity
+            style={styles.locationButton}
+            onPress={() => setShowLocationModal(true)}
+          >
+            <Feather name="map-pin" size={20} color={Theme.colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+
+        {isUsingCustomLocation && customLocationName ? (
+          <View style={styles.customLocationBadge}>
+            <Feather name="map-pin" size={12} color={Theme.colors.accent} />
+            <Text style={styles.customLocationText} numberOfLines={1}>
+              {customLocationName}
+            </Text>
+            <TouchableOpacity onPress={clearCustomLocation} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Feather name="x" size={14} color={Theme.colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          activeLocation && (
+            <Text style={styles.headerSubtitle}>
+              {restaurants.length} restaurants nearby
+            </Text>
+          )
         )}
       </View>
 
@@ -210,6 +234,11 @@ export default function MapScreenWeb() {
           </View>
         )}
       </View>
+
+      <LocationSearchModal
+        visible={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -224,15 +253,39 @@ const styles = StyleSheet.create({
     paddingVertical: Theme.spacing.sm,
     backgroundColor: Theme.colors.white,
   },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   headerTitle: {
     fontSize: Theme.fontSize.xxl,
     fontWeight: Theme.fontWeight.heavy,
     color: Theme.colors.textPrimary,
   },
+  locationButton: {
+    padding: Theme.spacing.xs,
+  },
   headerSubtitle: {
     fontSize: Theme.fontSize.sm,
     color: Theme.colors.textSecondary,
     marginTop: 2,
+  },
+  customLocationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.xs,
+    marginTop: 4,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.borderRadius.full,
+    paddingHorizontal: Theme.spacing.sm,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+  },
+  customLocationText: {
+    fontSize: Theme.fontSize.sm,
+    color: Theme.colors.textSecondary,
+    maxWidth: 200,
   },
   mapContainer: {
     flex: 1,

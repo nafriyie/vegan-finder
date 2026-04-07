@@ -6,12 +6,15 @@ export function useLocation() {
   const {
     userLocation,
     customLocation,
+    customLocationName,
+    recentLocations,
     isUsingCustomLocation,
     permissionStatus,
     setUserLocation,
     setPermissionStatus,
     setCustomLocation,
     clearCustomLocation,
+    addRecentLocation,
     getActiveLocation,
   } = useLocationStore();
 
@@ -67,6 +70,8 @@ export function useLocation() {
   return {
     userLocation,
     customLocation,
+    customLocationName,
+    recentLocations,
     activeLocation: getActiveLocation(),
     isUsingCustomLocation,
     permissionStatus,
@@ -74,5 +79,6 @@ export function useLocation() {
     getCurrentLocation,
     setCustomLocation,
     clearCustomLocation,
+    addRecentLocation,
   };
 }
