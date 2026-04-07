@@ -1,0 +1,9 @@
+- Make it so that you can save restaurants
+- Investigate options to automatically populate menu items on app
+- Improve searching algorithm - not pulling all vegan restaurants
+- Discern between fully vegan restaurants and non-vegan restaurants with vegan options
+- Fix sorting & filtering options
+- Restrict API for security
+- Once MVP is done, share with others 
+- * For current map location, make it so searching location has autocomplete
+- * Moving the map should re-render locations on the phone 
