@@ -10,3 +10,10 @@ export interface LocationSearchResult {
   address: string;
   location: UserLocation;
 }
+
+export interface AutocompletePrediction {
+  placeId: string;
+  mainText: string;
+  secondaryText: string;
+  fullText: string;
+}
