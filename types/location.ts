@@ -17,3 +17,10 @@ export interface AutocompletePrediction {
   secondaryText: string;
   fullText: string;
 }
+
+export interface MapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}

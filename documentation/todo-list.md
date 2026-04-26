@@ -15,3 +15,6 @@
     - Need it so no UI pops out that say that you are searching for new spots
     - Need it so existing spots on screen don't disapppear when panning, only new ones are added while any restaurant that goes off screen disapper
 - Fix search UI, bringing up keyboard should truncate the autocomplete list to see what you are typing 
+
+4/26
+- Map-render works but restaurant nearby count is wrong maybe bc latest change played with the boundaries

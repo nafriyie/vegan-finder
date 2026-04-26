@@ -162,16 +162,42 @@ function mapGooglePlace(place: GooglePlace): Restaurant {
   };
 }
 
+export interface SearchArea {
+  center: { lat: number; lng: number };
+  radius?: number;
+  bounds?: { north: number; south: number; east: number; west: number };
+}
+
 export async function searchNearbyRestaurants(
-  lat: number,
-  lng: number,
-  radius: number = Config.DEFAULT_SEARCH_RADIUS
+  area: SearchArea
 ): Promise<Restaurant[]> {
   const apiKey = Config.GOOGLE_PLACES_API_KEY;
   if (!apiKey) {
     console.warn('Google Places API key not configured');
     return [];
   }
+
+  const { center, radius, bounds } = area;
+  const locationConstraint = bounds
+    ? {
+        locationRestriction: {
+          rectangle: {
+            low: { latitude: bounds.south, longitude: bounds.west },
+            high: { latitude: bounds.north, longitude: bounds.east },
+          },
+        },
+      }
+    : {
+        locationBias: {
+          circle: {
+            center: { latitude: center.lat, longitude: center.lng },
+            radius: Math.min(
+              radius ?? Config.DEFAULT_SEARCH_RADIUS,
+              Config.MAX_SEARCH_RADIUS
+            ),
+          },
+        },
+      };
 
   try {
     const response = await fetch(`${API_BASE}/places:searchText`, {
@@ -183,12 +209,7 @@ export async function searchNearbyRestaurants(
       },
       body: JSON.stringify({
         textQuery: 'vegan restaurant',
-        locationBias: {
-          circle: {
-            center: { latitude: lat, longitude: lng },
-            radius: Math.min(radius, Config.MAX_SEARCH_RADIUS),
-          },
-        },
+        ...locationConstraint,
         maxResultCount: Math.min(Config.MAX_RESULTS, 20),
         languageCode: 'en',
       }),

@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Text, Platform, TouchableOpacity } from 'react-native';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Theme } from '@/constants/Theme';
+import { Config } from '@/constants/Config';
 import { useLocation } from '@/hooks/useLocation';
 import { useRestaurants } from '@/hooks/useRestaurants';
+import { useLocationStore } from '@/stores/locationStore';
 import { RestaurantMarker } from '@/components/map/RestaurantMarker';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -23,7 +25,8 @@ export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
   const { activeLocation, permissionStatus, isUsingCustomLocation, customLocationName, clearCustomLocation } =
     useLocation();
-  const { restaurants, isLoading, isError, refetch } = useRestaurants();
+  const { restaurants, isLoading } = useRestaurants();
+  const setMapView = useLocationStore((s) => s.setMapView);
   const [showLocationModal, setShowLocationModal] = useState(false);
 
   useEffect(() => {
@@ -39,6 +42,26 @@ export default function MapScreen() {
       );
     }
   }, [activeLocation]);
+
+  const handleRegionChangeComplete = useCallback(
+    (region: Region) => {
+      const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
+      const bounds = {
+        north: latitude + latitudeDelta / 2,
+        south: latitude - latitudeDelta / 2,
+        east: longitude + longitudeDelta / 2,
+        west: longitude - longitudeDelta / 2,
+      };
+      const latMeters = latitudeDelta * 111320;
+      const lngMeters = longitudeDelta * 111320 * Math.cos((latitude * Math.PI) / 180);
+      const radius = Math.min(
+        Math.hypot(latMeters, lngMeters) / 2,
+        Config.MAX_SEARCH_RADIUS
+      );
+      setMapView({ lat: latitude, lng: longitude }, radius, bounds);
+    },
+    [setMapView]
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -97,6 +120,7 @@ export default function MapScreen() {
                   }
                 : DEFAULT_REGION
             }
+            onRegionChangeComplete={handleRegionChangeComplete}
             showsUserLocation
             showsMyLocationButton
           >

@@ -91,6 +91,22 @@ Users can add menu items (name, description, price, category, photos) to any res
 
 **Scope:** The feature appears on the Map tab (native and web) and the List tab only — not the Account tab.
 
+### 9. Dynamic Map Search on Pan/Zoom
+
+**Decision:** Refetch restaurants every time the user pans or zooms the map, based on the current visible area. Only markers within the visible bounds are rendered. Previously-visible markers stay on screen as long as they remain in the viewport.
+
+**Implementation:**
+- `types/location.ts` — added `MapBounds { north, south, east, west }` interface.
+- `stores/locationStore.ts` — added transient (non-persisted) `mapCenter`, `mapRadius`, `mapBounds` fields and a `setMapView(center, radius, bounds)` setter. `setCustomLocation` / `clearCustomLocation` reset these so panned state doesn't bleed across location switches. `partialize` now excludes all transient fields from AsyncStorage.
+- `lib/api/google-places.ts` — `searchNearbyRestaurants` now accepts a `SearchArea` object. When `bounds` is provided it sends `locationRestriction.rectangle` (strict box), otherwise falls back to `locationBias.circle` for the initial pre-bounds fetch. Rectangle restriction eliminates center-skew in top-20 results so corner restaurants are fairly ranked.
+- `hooks/useRestaurants.ts` — determines search location from `mapCenter` (fallback: `activeLocation`) and radius from `mapRadius` (fallback: filter or default). Passes `mapBounds` to the API. Maintains a session-scoped `Map<id, Restaurant>` accumulator so previously-fetched markers don't flicker when new fetches land. Resets accumulator only when `activeLocation` changes. Culls the accumulator to `padBounds(mapBounds)` (5% inflation per side) so markers with icons peeking into viewport aren't prematurely hidden. Uses `placeholderData: keepPreviousData` for silent background refetches. `isLoading` only fires on initial load (empty accumulator).
+- `app/(tabs)/index.tsx` — wires `onRegionChangeComplete` to compute bounds + half-diagonal radius and call `setMapView`. No loading overlay during pan/zoom.
+- `app/(tabs)/index.web.tsx` — wires `onIdle` to read `map.getBounds()` / `map.getCenter()` and call `setMapView`. Same loading rule.
+
+**Why `locationRestriction.rectangle` over `locationBias.circle`:** The circle (even circumscribing radius) biases top-20 ranking toward center, starving corners of the visible rectangle. Strict rectangle restriction gives all restaurants in the viewport equal opportunity to appear in the 20-result cap.
+
+**Known limitation:** The "X restaurants nearby" count in the header reflects all culled-to-bounds restaurants including the 5% padding buffer — it may be slightly higher than the exact on-screen count. TODO: tighten this count to strict bounds only.
+
 ---
 
-*Last updated: April 2026 — Custom location search feature added*
+*Last updated: April 2026 — Dynamic map search on pan/zoom added*

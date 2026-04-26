@@ -14,13 +14,14 @@ import {
 } from '@react-google-maps/api';
 import { useRouter } from 'expo-router';
 import { Theme } from '@/constants/Theme';
+import { Config } from '@/constants/Config';
 import { useLocation } from '@/hooks/useLocation';
 import { useRestaurants } from '@/hooks/useRestaurants';
+import { useLocationStore } from '@/stores/locationStore';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { ErrorView } from '@/components/common/ErrorView';
 import { formatPriceLevel, formatRating } from '@/lib/utils/formatting';
-import { formatDistance } from '@/lib/utils/distance';
+import { calculateDistance, formatDistance } from '@/lib/utils/distance';
 import { LocationSearchModal } from '@/components/location/LocationSearchModal';
 import { Feather } from '@expo/vector-icons';
 import type { Restaurant } from '@/types/restaurant';
@@ -37,6 +38,7 @@ export default function MapScreenWeb() {
   const router = useRouter();
   const { activeLocation, isUsingCustomLocation, customLocationName, clearCustomLocation } = useLocation();
   const { restaurants, isLoading } = useRestaurants();
+  const setMapView = useLocationStore((s) => s.setMapView);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -55,6 +57,28 @@ export default function MapScreenWeb() {
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
   }, []);
+
+  const handleIdle = useCallback(() => {
+    if (!map) return;
+    const center = map.getCenter();
+    const bounds = map.getBounds();
+    if (!center || !bounds) return;
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    const lat = center.lat();
+    const lng = center.lng();
+    const mapBounds = {
+      north: ne.lat(),
+      south: sw.lat(),
+      east: ne.lng(),
+      west: sw.lng(),
+    };
+    const radius = Math.min(
+      calculateDistance(lat, lng, ne.lat(), ne.lng()),
+      Config.MAX_SEARCH_RADIUS
+    );
+    setMapView({ lat, lng }, radius, mapBounds);
+  }, [map, setMapView]);
 
   const center = activeLocation
     ? { lat: activeLocation.lat, lng: activeLocation.lng }
@@ -106,6 +130,7 @@ export default function MapScreenWeb() {
             center={center}
             zoom={14}
             onLoad={onLoad}
+            onIdle={handleIdle}
             options={{
               styles: MAP_STYLES,
               disableDefaultUI: false,
