@@ -6,4 +6,12 @@
 - Restrict API for security
 - Once MVP is done, share with others 
 - * For current map location, make it so searching location has autocomplete
-- * Moving the map should re-render locations on the phone 
+    - Autocomplete still wonkly, typing each character should have a list of x results unless it's invalid (e.g. typing 48 Corona Road had no autocomplete until I finished the address)
+    4/8/26
+    - Search Location Text and X should be moved down a little
+    - Autocomplete can have like 4 more values
+    - Sometime selecting item from autocomplete list crashes app, no feedback in console
+- * Moving the map should re-render search query to pick up restaurants in field of view of the screen 
+    - Need it so no UI pops out that say that you are searching for new spots
+    - Need it so existing spots on screen don't disapppear when panning, only new ones are added while any restaurant that goes off screen disapper
+- Fix search UI, bringing up keyboard should truncate the autocomplete list to see what you are typing 

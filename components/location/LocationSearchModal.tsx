@@ -5,13 +5,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
+  ScrollView,
   StyleSheet,
-  Pressable,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Theme } from '@/constants/Theme';
 import { geocodeLocation } from '@/lib/api/geocoding';
@@ -165,17 +163,15 @@ export function LocationSearchModal({ visible, onClose }: LocationSearchModalPro
   const isBusy = isLoading || isResolving;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <Pressable style={styles.overlay} onPress={handleClose}>
-          <Pressable style={styles.sheet}>
-            {/* Handle bar */}
-            <View style={styles.handle} />
-
-            <Text style={styles.title}>Search Location</Text>
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
+        <SafeAreaView style={styles.container}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.title}>Search Location</Text>
+              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                <Feather name="x" size={24} color={Theme.colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
 
             {/* Search row */}
             <View style={styles.searchRow}>
@@ -202,76 +198,79 @@ export function LocationSearchModal({ visible, onClose }: LocationSearchModalPro
               </TouchableOpacity>
             </View>
 
-            {/* Default list: current location + recents */}
-            {showDefaultList && (
-              <View>
-                {/* Current location row */}
-                <TouchableOpacity style={styles.resultRow} onPress={handleUseGPS}>
-                  <View style={[styles.resultIconContainer, styles.gpsIconContainer]}>
-                    <Feather name="crosshair" size={16} color={Theme.colors.accent} />
-                  </View>
-                  <View style={styles.resultText}>
-                    <Text style={styles.resultName}>Current Location</Text>
+            <ScrollView
+              style={{ flex: 1 }}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+            >
+              {/* Default list: current location + recents */}
+              {showDefaultList && (
+                <View>
+                  {/* Current location row */}
+                  <TouchableOpacity style={styles.resultRow} onPress={handleUseGPS}>
+                    <View style={[styles.resultIconContainer, styles.gpsIconContainer]}>
+                      <Feather name="crosshair" size={16} color={Theme.colors.accent} />
+                    </View>
+                    <View style={styles.resultText}>
+                      <Text style={styles.resultName}>Current Location</Text>
+                      {isUsingCustomLocation && (
+                        <Text style={styles.resultAddress}>Switch back to GPS</Text>
+                      )}
+                    </View>
                     {isUsingCustomLocation && (
-                      <Text style={styles.resultAddress}>Switch back to GPS</Text>
+                      <Feather name="check" size={16} color={Theme.colors.accent} />
                     )}
-                  </View>
-                  {isUsingCustomLocation && (
-                    <Feather name="check" size={16} color={Theme.colors.accent} />
+                  </TouchableOpacity>
+
+                  {/* Recent locations */}
+                  {recentLocations.length > 0 && (
+                    <>
+                      <Text style={styles.sectionLabel}>Recent</Text>
+                      {recentLocations.map((item, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          style={styles.resultRow}
+                          onPress={() => handleSelect(item, true)}
+                        >
+                          <View style={styles.resultIconContainer}>
+                            <Feather name="clock" size={16} color={Theme.colors.textMuted} />
+                          </View>
+                          <View style={styles.resultText}>
+                            <Text style={styles.resultName}>{item.name}</Text>
+                            <Text style={styles.resultAddress} numberOfLines={1}>
+                              {item.address}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </>
                   )}
-                </TouchableOpacity>
+                </View>
+              )}
 
-                {/* Recent locations */}
-                {recentLocations.length > 0 && (
-                  <>
-                    <Text style={styles.sectionLabel}>Recent</Text>
-                    {recentLocations.map((item, index) => (
+              {/* Autocomplete predictions / search results */}
+              {!showDefaultList && (
+                <>
+                  {isLoading && (
+                    <ActivityIndicator
+                      style={styles.loader}
+                      size="small"
+                      color={Theme.colors.textMuted}
+                    />
+                  )}
+
+                  {!isLoading && error && (
+                    <Text style={styles.errorText}>{error}</Text>
+                  )}
+
+                  {!isLoading && hasSearched && predictions.length === 0 && !error && (
+                    <Text style={styles.emptyText}>No results found for "{query}"</Text>
+                  )}
+
+                  {!isLoading && predictions.length > 0 &&
+                    predictions.map((item) => (
                       <TouchableOpacity
-                        key={index}
-                        style={styles.resultRow}
-                        onPress={() => handleSelect(item, true)}
-                      >
-                        <View style={styles.resultIconContainer}>
-                          <Feather name="clock" size={16} color={Theme.colors.textMuted} />
-                        </View>
-                        <View style={styles.resultText}>
-                          <Text style={styles.resultName}>{item.name}</Text>
-                          <Text style={styles.resultAddress} numberOfLines={1}>
-                            {item.address}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </>
-                )}
-              </View>
-            )}
-
-            {/* Autocomplete predictions / search results */}
-            {!showDefaultList && (
-              <>
-                {isLoading && (
-                  <ActivityIndicator
-                    style={styles.loader}
-                    size="small"
-                    color={Theme.colors.textMuted}
-                  />
-                )}
-
-                {!isLoading && error && (
-                  <Text style={styles.errorText}>{error}</Text>
-                )}
-
-                {!isLoading && hasSearched && predictions.length === 0 && !error && (
-                  <Text style={styles.emptyText}>No results found for "{query}"</Text>
-                )}
-
-                {!isLoading && predictions.length > 0 && (
-                  <FlatList
-                    data={predictions}
-                    keyExtractor={(item) => item.placeId}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
+                        key={item.placeId}
                         style={styles.resultRow}
                         onPress={() => handleSelectPrediction(item)}
                         disabled={isResolving}
@@ -288,48 +287,35 @@ export function LocationSearchModal({ visible, onClose }: LocationSearchModalPro
                           ) : null}
                         </View>
                       </TouchableOpacity>
-                    )}
-                    scrollEnabled={false}
-                  />
-                )}
-              </>
-            )}
-          </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
+                    ))
+                  }
+                </>
+              )}
+            </ScrollView>
+        </SafeAreaView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardView: {
+  container: {
     flex: 1,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
     backgroundColor: Theme.colors.white,
-    borderTopLeftRadius: Theme.borderRadius.xl,
-    borderTopRightRadius: Theme.borderRadius.xl,
     padding: Theme.spacing.lg,
-    paddingBottom: Theme.spacing.xxl,
   },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Theme.colors.border,
-    alignSelf: 'center',
-    marginBottom: Theme.spacing.lg,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Theme.spacing.md,
   },
   title: {
     fontSize: Theme.fontSize.xl,
     fontWeight: Theme.fontWeight.bold,
     color: Theme.colors.textPrimary,
-    marginBottom: Theme.spacing.md,
+  },
+  closeButton: {
+    padding: Theme.spacing.xs,
   },
   searchRow: {
     flexDirection: 'row',

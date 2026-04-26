@@ -77,6 +77,20 @@ The Expo project was initialized with `npx create-expo-app --template tabs`, the
 ### Menu items are local-only
 Users can add menu items (name, description, price, category, photos) to any restaurant. These persist in AsyncStorage via Zustand's persist middleware. There's no backend — this is the MVP approach. The plan notes a future Firebase/Supabase backend for syncing.
 
+### 8. Custom Location Search Feature
+**Decision:** Allow users to search for any city/address and see vegan restaurants near that location instead of (or instead of waiting for) their GPS location.
+
+**Implementation:**
+- `lib/api/geocoding.ts` — new Google Geocoding REST API client (`maps.googleapis.com/maps/api/geocode/json`). Uses the same `GOOGLE_PLACES_API_KEY` as the Places client. Returns up to 5 `LocationSearchResult` objects. Extracts `locality` or `administrative_area_level_1` from address components for a short display name.
+- `stores/locationStore.ts` — extended with `customLocationName: string | null`, `recentLocations: LocationSearchResult[]`, and `addRecentLocation()`. Wrapped with Zustand `persist` middleware (key: `vegan-finder-location`, storage: AsyncStorage) so recent locations survive app restarts. `setCustomLocation` now accepts an optional second `name` argument.
+- `hooks/useLocation.ts` — exposes `customLocationName`, `recentLocations`, and `addRecentLocation` from the store.
+- `components/location/LocationSearchModal.tsx` — bottom-sheet modal (same pattern as `SortSelector`). Default list shows "Current Location" (GPS, always first) + up to 5 persisted recent locations. Once the user types and searches, geocoded results replace the default list. Selecting a new (non-recent) result saves it to recents via `addRecentLocation`.
+- `app/(tabs)/index.tsx`, `index.web.tsx`, `list.tsx` — each header gained a `map-pin` button that opens the modal, plus a pill badge showing the active custom location name with an `x` to clear it. The Account screen was intentionally left out.
+
+**Why no changes to `useRestaurants`:** The hook already includes `activeLocation.lat/lng` in its React Query key, so changing the active location via `setCustomLocation` or `clearCustomLocation` automatically triggers a refetch. No additional wiring was needed.
+
+**Scope:** The feature appears on the Map tab (native and web) and the List tab only — not the Account tab.
+
 ---
 
-*Last updated: April 2026 — Initial MVP implementation conversation*
+*Last updated: April 2026 — Custom location search feature added*
