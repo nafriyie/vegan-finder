@@ -4,10 +4,10 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Theme } from '@/constants/Theme';
+import { useDialog } from '@/components/common/DialogProvider';
 import { formatPrice } from '@/lib/utils/formatting';
 import type { MenuItem } from '@/types/menu';
 
@@ -18,19 +18,16 @@ interface MenuItemCardProps {
 }
 
 export function MenuItemCard({ item, onEdit, onDelete }: MenuItemCardProps) {
-  const handleDelete = () => {
-    Alert.alert(
-      'Delete Menu Item',
-      `Are you sure you want to delete "${item.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => onDelete?.(item),
-        },
-      ]
-    );
+  const { confirm } = useDialog();
+
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Menu Item',
+      message: `Are you sure you want to delete "${item.name}"?`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (confirmed) onDelete?.(item);
   };
 
   const photoUrl = item.photos[0];

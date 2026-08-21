@@ -1,30 +1,30 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Theme } from '@/constants/Theme';
 import { useFilterStore } from '@/stores/filterStore';
 import { useMenuStore } from '@/stores/menuStore';
+import { useDialog } from '@/components/common/DialogProvider';
 
 export default function AccountScreen() {
   const resetFilters = useFilterStore((s) => s.resetFilters);
   const menuItems = useMenuStore((s) => s.items);
+  const clearAllItems = useMenuStore((s) => s.clearAllItems);
+  const { confirm } = useDialog();
   const totalMenuItems = Object.values(menuItems).flat().length;
 
-  const handleClearData = () => {
-    Alert.alert(
-      'Clear All Data',
-      'This will reset your filters and remove all saved menu items. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: () => {
-            resetFilters();
-          },
-        },
-      ]
-    );
+  const handleClearData = async () => {
+    const confirmed = await confirm({
+      title: 'Clear All Data',
+      message:
+        'This will reset your filters and remove all saved menu items. This cannot be undone.',
+      confirmLabel: 'Clear',
+      destructive: true,
+    });
+    if (confirmed) {
+      resetFilters();
+      clearAllItems();
+    }
   };
 
   return (

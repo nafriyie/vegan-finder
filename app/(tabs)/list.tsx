@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { FlatList, View, StyleSheet, Text, RefreshControl, TouchableOpacity } from 'react-native';
+import {
+  FlatList,
+  View,
+  StyleSheet,
+  Text,
+  RefreshControl,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Theme } from '@/constants/Theme';
@@ -25,12 +33,32 @@ export default function ListScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>Explore</Text>
-          <TouchableOpacity
-            style={styles.locationButton}
-            onPress={() => setShowLocationModal(true)}
-          >
-            <Feather name="map-pin" size={20} color={Theme.colors.textPrimary} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {Platform.OS === 'web' && (
+              <TouchableOpacity
+                style={styles.locationButton}
+                onPress={() => refetch()}
+                disabled={isRefetching}
+                accessibilityLabel="Refresh restaurants"
+              >
+                <Feather
+                  name="refresh-cw"
+                  size={20}
+                  color={
+                    isRefetching
+                      ? Theme.colors.textMuted
+                      : Theme.colors.textPrimary
+                  }
+                />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Feather name="map-pin" size={20} color={Theme.colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {isUsingCustomLocation && customLocationName ? (
@@ -114,6 +142,11 @@ const styles = StyleSheet.create({
     fontSize: Theme.fontSize.xxl,
     fontWeight: Theme.fontWeight.heavy,
     color: Theme.colors.textPrimary,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.xs,
   },
   locationButton: {
     padding: Theme.spacing.xs,

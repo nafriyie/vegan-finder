@@ -7,11 +7,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useDialog } from '@/components/common/DialogProvider';
+import { toStorableImageUri, MAX_PHOTOS_PER_ITEM } from '@/lib/utils/image';
 import { Feather } from '@expo/vector-icons';
 import { Theme } from '@/constants/Theme';
 import { MENU_CATEGORIES, type MenuCategory } from '@/types/menu';
@@ -45,16 +46,36 @@ export function AddMenuItemForm({
     editItem?.category ?? 'Mains'
   );
   const [photos, setPhotos] = useState<string[]>(editItem?.photos ?? []);
+  const { alert } = useDialog();
 
   const handlePickImage = async () => {
+    if (photos.length >= MAX_PHOTOS_PER_ITEM) {
+      await alert({
+        title: 'Photo limit reached',
+        message: `You can attach up to ${MAX_PHOTOS_PER_ITEM} photos per item.`,
+      });
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: false,
       quality: 0.8,
     });
 
-    if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) => [...prev, result.assets[0].uri]);
+    if (result.canceled || !result.assets[0]) return;
+
+    try {
+      // On web this downscales and converts to a data URI so the photo
+      // survives a reload; on native it passes the uri straight through.
+      const storableUri = await toStorableImageUri(result.assets[0].uri);
+      setPhotos((prev) => [...prev, storableUri]);
+    } catch (error) {
+      console.error('handlePickImage: could not process image', error);
+      await alert({
+        title: 'Could not add photo',
+        message: 'That image could not be processed. Please try another one.',
+      });
     }
   };
 
@@ -62,15 +83,21 @@ export function AddMenuItemForm({
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a name for the menu item.');
+      await alert({
+        title: 'Missing name',
+        message: 'Please enter a name for the menu item.',
+      });
       return;
     }
 
     const price = priceText ? parseFloat(priceText) : undefined;
     if (priceText && (isNaN(price!) || price! < 0)) {
-      Alert.alert('Error', 'Please enter a valid price.');
+      await alert({
+        title: 'Invalid price',
+        message: 'Please enter a valid price.',
+      });
       return;
     }
 

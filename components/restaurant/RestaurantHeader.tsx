@@ -4,7 +4,7 @@ import {
   StyleSheet,
   Image,
   ScrollView,
-  Dimensions,
+  useWindowDimensions,
   TouchableOpacity,
   Linking,
   Platform,
@@ -15,7 +15,6 @@ import { Theme } from '@/constants/Theme';
 import { formatPriceLevel, formatRating } from '@/lib/utils/formatting';
 import type { Restaurant } from '@/types/restaurant';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
 const PHOTO_HEIGHT = 260;
 
 interface RestaurantHeaderProps {
@@ -23,6 +22,8 @@ interface RestaurantHeaderProps {
 }
 
 export function RestaurantHeader({ restaurant }: RestaurantHeaderProps) {
+  // Read at render time so the carousel reflows on rotate/resize.
+  const { width: screenWidth } = useWindowDimensions();
   const priceText = formatPriceLevel(restaurant.priceLevel);
   const cuisineText = restaurant.cuisineTypes.join(' \u00B7 ');
 
@@ -80,12 +81,12 @@ export function RestaurantHeader({ restaurant }: RestaurantHeaderProps) {
             <Image
               key={index}
               source={{ uri: photo.url }}
-              style={styles.photo}
+              style={[styles.photo, { width: screenWidth }]}
             />
           ))}
         </ScrollView>
       ) : (
-        <View style={[styles.photo, styles.placeholder]}>
+        <View style={[styles.photo, styles.placeholder, { width: screenWidth }]}>
           <Feather name="image" size={48} color={Theme.colors.textMuted} />
         </View>
       )}
@@ -173,7 +174,6 @@ const styles = StyleSheet.create({
     height: PHOTO_HEIGHT,
   },
   photo: {
-    width: SCREEN_WIDTH,
     height: PHOTO_HEIGHT,
     resizeMode: 'cover',
   },

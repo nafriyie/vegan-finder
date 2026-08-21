@@ -1,8 +1,8 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import type { MenuItem, MenuCategory } from '@/types/menu';
+import { createSafeJSONStorage } from '@/lib/utils/storage';
 
 interface MenuStore {
   items: Record<string, MenuItem[]>; // keyed by restaurantId
@@ -18,6 +18,7 @@ interface MenuStore {
     updates: Partial<Pick<MenuItem, 'name' | 'description' | 'price' | 'currency' | 'category' | 'photos'>>
   ) => void;
   deleteItem: (restaurantId: string, itemId: string) => void;
+  clearAllItems: () => void;
 }
 
 export const useMenuStore = create<MenuStore>()(
@@ -66,6 +67,10 @@ export const useMenuStore = create<MenuStore>()(
         });
       },
 
+      clearAllItems: () => {
+        set({ items: {} });
+      },
+
       deleteItem: (restaurantId, itemId) => {
         set((state) => {
           const restaurantItems = state.items[restaurantId] ?? [];
@@ -82,7 +87,7 @@ export const useMenuStore = create<MenuStore>()(
     }),
     {
       name: 'vegan-finder-menu',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createSafeJSONStorage(),
     }
   )
 );

@@ -20,6 +20,7 @@ import { useRestaurants } from '@/hooks/useRestaurants';
 import { useLocationStore } from '@/stores/locationStore';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorView } from '@/components/common/ErrorView';
 import { formatPriceLevel, formatRating } from '@/lib/utils/formatting';
 import { calculateDistance, formatDistance } from '@/lib/utils/distance';
 import { LocationSearchModal } from '@/components/location/LocationSearchModal';
@@ -36,14 +37,21 @@ const MAP_STYLES: google.maps.MapTypeStyle[] = [
 
 export default function MapScreenWeb() {
   const router = useRouter();
-  const { activeLocation, isUsingCustomLocation, customLocationName, clearCustomLocation } = useLocation();
+  const {
+    activeLocation,
+    permissionStatus,
+    getCurrentLocation,
+    isUsingCustomLocation,
+    customLocationName,
+    clearCustomLocation,
+  } = useLocation();
   const { restaurants, isLoading } = useRestaurants();
   const setMapView = useLocationStore((s) => s.setMapView);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
 
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: API_KEY,
   });
 
@@ -79,6 +87,12 @@ export default function MapScreenWeb() {
     );
     setMapView({ lat, lng }, radius, mapBounds);
   }, [map, setMapView]);
+
+  const handleRecenter = useCallback(() => {
+    if (!map || !activeLocation) return;
+    map.panTo({ lat: activeLocation.lat, lng: activeLocation.lng });
+    if ((map.getZoom() ?? 0) < 14) map.setZoom(14);
+  }, [map, activeLocation]);
 
   const center = activeLocation
     ? { lat: activeLocation.lat, lng: activeLocation.lng }
@@ -122,7 +136,20 @@ export default function MapScreenWeb() {
 
       {/* Map */}
       <View style={styles.mapContainer}>
-        {!isLoaded ? (
+        {permissionStatus === 'denied' && !activeLocation ? (
+          <ErrorView
+            message="Location access is needed to find restaurants near you. Enable location for this site, then try again."
+            onRetry={getCurrentLocation}
+          />
+        ) : loadError || !API_KEY ? (
+          <ErrorView
+            message={
+              !API_KEY
+                ? 'Google Maps API key is missing from this build.'
+                : `Google Maps failed to load: ${loadError?.message ?? 'unknown error'}`
+            }
+          />
+        ) : !isLoaded ? (
           <LoadingSpinner message="Loading map..." fullScreen />
         ) : (
           <GoogleMap
@@ -252,6 +279,17 @@ export default function MapScreenWeb() {
           </GoogleMap>
         )}
 
+        {/* Recenter on the user's position */}
+        {isLoaded && activeLocation && (
+          <TouchableOpacity
+            style={styles.recenterButton}
+            onPress={handleRecenter}
+            accessibilityLabel="Recenter map on my location"
+          >
+            <Feather name="crosshair" size={20} color={Theme.colors.textPrimary} />
+          </TouchableOpacity>
+        )}
+
         {/* Loading overlay while fetching restaurants */}
         {isLoaded && isLoading && (
           <View style={styles.loadingOverlay}>
@@ -314,6 +352,18 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     flex: 1,
+  },
+  recenterButton: {
+    position: 'absolute',
+    right: Theme.spacing.md,
+    bottom: Theme.spacing.xl,
+    width: 44,
+    height: 44,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: Theme.colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Theme.shadow.md,
   },
   loadingOverlay: {
     position: 'absolute',

@@ -1,4 +1,11 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  useWindowDimensions,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Theme } from '@/constants/Theme';
@@ -6,13 +13,15 @@ import { formatPriceLevel, formatRating } from '@/lib/utils/formatting';
 import { formatDistance } from '@/lib/utils/distance';
 import type { Restaurant } from '@/types/restaurant';
 
-const CARD_WIDTH = Dimensions.get('window').width - Theme.spacing.md * 2;
 
 interface RestaurantCardProps {
   restaurant: Restaurant;
 }
 
 export function RestaurantCard({ restaurant }: RestaurantCardProps) {
+  // Read at render time, not module scope, so the card reflows on rotate/resize.
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = windowWidth - Theme.spacing.md * 2;
   const router = useRouter();
 
   const handlePress = () => {
@@ -25,7 +34,7 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
 
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={[styles.container, { width: cardWidth }]}
       onPress={handlePress}
       activeOpacity={0.7}
     >
@@ -81,7 +90,6 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    width: CARD_WIDTH,
     backgroundColor: Theme.colors.white,
     borderRadius: Theme.borderRadius.lg,
     marginBottom: Theme.spacing.md,
