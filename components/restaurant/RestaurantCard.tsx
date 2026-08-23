@@ -3,12 +3,12 @@ import {
   Text,
   StyleSheet,
   Image,
-  TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Theme } from '@/constants/Theme';
+import { AppTouchable } from '@/components/common/AppTouchable';
 import { formatPriceLevel, formatRating } from '@/lib/utils/formatting';
 import { formatDistance } from '@/lib/utils/distance';
 import type { Restaurant } from '@/types/restaurant';
@@ -33,7 +33,7 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
   const priceText = formatPriceLevel(restaurant.priceLevel);
 
   return (
-    <TouchableOpacity
+    <AppTouchable
       style={[styles.container, { width: cardWidth }]}
       onPress={handlePress}
       activeOpacity={0.7}
@@ -84,7 +84,7 @@ export function RestaurantCard({ restaurant }: RestaurantCardProps) {
           )}
         </View>
       </View>
-    </TouchableOpacity>
+    </AppTouchable>
   );
 }
 

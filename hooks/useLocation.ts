@@ -57,20 +57,25 @@ function isPermissionDenied(error: unknown): boolean {
 }
 
 export function useLocation() {
-  const {
-    userLocation,
-    customLocation,
-    customLocationName,
-    recentLocations,
-    isUsingCustomLocation,
-    permissionStatus,
-    setUserLocation,
-    setPermissionStatus,
-    setCustomLocation,
-    clearCustomLocation,
-    addRecentLocation,
-    getActiveLocation,
-  } = useLocationStore();
+  // Field selectors, not `useLocationStore()`. The bare call subscribes to the
+  // whole store, and setViewport fires on every map idle — so panning the map
+  // re-rendered every screen using this hook, which is what made the map snap
+  // back and taps land unreliably.
+  const userLocation = useLocationStore((s) => s.userLocation);
+  const customLocation = useLocationStore((s) => s.customLocation);
+  const customLocationName = useLocationStore((s) => s.customLocationName);
+  const recentLocations = useLocationStore((s) => s.recentLocations);
+  const isUsingCustomLocation = useLocationStore((s) => s.isUsingCustomLocation);
+  const permissionStatus = useLocationStore((s) => s.permissionStatus);
+
+  const setUserLocation = useLocationStore((s) => s.setUserLocation);
+  const setPermissionStatus = useLocationStore((s) => s.setPermissionStatus);
+  const setCustomLocation = useLocationStore((s) => s.setCustomLocation);
+  const clearCustomLocation = useLocationStore((s) => s.clearCustomLocation);
+  const addRecentLocation = useLocationStore((s) => s.addRecentLocation);
+
+  const activeLocation =
+    isUsingCustomLocation && customLocation ? customLocation : userLocation;
 
   const getCurrentLocation = useCallback(async () => {
     try {
@@ -180,7 +185,7 @@ export function useLocation() {
     customLocation,
     customLocationName,
     recentLocations,
-    activeLocation: getActiveLocation(),
+    activeLocation,
     isUsingCustomLocation,
     permissionStatus,
     requestPermission,

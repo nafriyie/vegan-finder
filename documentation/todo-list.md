@@ -18,3 +18,6 @@
 
 4/26
 - Map-render works but restaurant nearby count is wrong maybe bc latest change played with the boundaries
+- App still sometimes crash when scrolling around
+- Filter by restaurant type doesn't properly work (e.g. saying no mediterrean restaurants in Hoboken)
+-

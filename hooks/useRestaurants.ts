@@ -5,6 +5,7 @@ import { applyFilters, sortRestaurants } from '@/lib/utils/filtering';
 import { calculateDistance } from '@/lib/utils/distance';
 import { useLocationStore } from '@/stores/locationStore';
 import { useFilterStore } from '@/stores/filterStore';
+import { useUsageStore } from '@/stores/usageStore';
 import { Config } from '@/constants/Config';
 import type { Restaurant } from '@/types/restaurant';
 import type { MapBounds, UserLocation } from '@/types/location';
@@ -20,6 +21,10 @@ async function fetchRestaurants(
   radius: number,
   bounds: MapBounds | null
 ): Promise<Restaurant[]> {
+  // React Query only invokes queryFn on an actual fetch, so cached reads
+  // correctly don't count against the daily tally.
+  useUsageStore.getState().recordSearch();
+
   const results = await searchNearbyRestaurants({
     center: { lat: searchLat, lng: searchLng },
     radius,
@@ -55,16 +60,21 @@ export function useRestaurants() {
   const userLocation = useLocationStore((s) => s.userLocation);
   const customLocation = useLocationStore((s) => s.customLocation);
   const isUsingCustomLocation = useLocationStore((s) => s.isUsingCustomLocation);
-  const mapCenter = useLocationStore((s) => s.mapCenter);
-  const mapRadius = useLocationStore((s) => s.mapRadius);
-  const mapBounds = useLocationStore((s) => s.mapBounds);
+  // The query follows the *committed* search area only. Panning rewrites the
+  // viewport, which culls markers but never spends an API call — the user
+  // spends one deliberately via "Search this area".
+  const searchCenter = useLocationStore((s) => s.searchCenter);
+  const searchAreaRadius = useLocationStore((s) => s.searchRadius);
+  const searchBounds = useLocationStore((s) => s.searchBounds);
+  const viewBounds = useLocationStore((s) => s.viewBounds);
+  const commitInitialArea = useLocationStore((s) => s.commitInitialArea);
   const filters = useFilterStore();
 
   const activeLocation: UserLocation | null =
     isUsingCustomLocation && customLocation ? customLocation : userLocation;
-  const searchLocation = mapCenter ?? activeLocation;
+  const searchLocation = searchCenter ?? activeLocation;
   const searchRadius = Math.min(
-    mapRadius ?? filters.maxDistance ?? Config.DEFAULT_SEARCH_RADIUS,
+    searchAreaRadius ?? filters.maxDistance ?? Config.DEFAULT_SEARCH_RADIUS,
     Config.MAX_SEARCH_RADIUS
   );
 
@@ -77,14 +87,18 @@ export function useRestaurants() {
   const queryKeyRadius = Math.round(searchRadius / 100) * 100;
   // Round bounds into the query key so distinct rectangles invalidate
   // (sub-110m wiggles still hash to the same key).
-  const queryKeyBounds = mapBounds
+  const queryKeyBounds = searchBounds
     ? [
-        Math.round(mapBounds.north * COORD_PRECISION) / COORD_PRECISION,
-        Math.round(mapBounds.south * COORD_PRECISION) / COORD_PRECISION,
-        Math.round(mapBounds.east * COORD_PRECISION) / COORD_PRECISION,
-        Math.round(mapBounds.west * COORD_PRECISION) / COORD_PRECISION,
+        Math.round(searchBounds.north * COORD_PRECISION) / COORD_PRECISION,
+        Math.round(searchBounds.south * COORD_PRECISION) / COORD_PRECISION,
+        Math.round(searchBounds.east * COORD_PRECISION) / COORD_PRECISION,
+        Math.round(searchBounds.west * COORD_PRECISION) / COORD_PRECISION,
       ]
     : null;
+
+  const lastSearchedRef = useRef<{ center: UserLocation; radius: number } | null>(
+    null
+  );
 
   const query = useQuery({
     queryKey: ['restaurants', queryKeyLat, queryKeyLng, queryKeyRadius, queryKeyBounds],
@@ -92,13 +106,17 @@ export function useRestaurants() {
       if (!searchLocation || !activeLocation) {
         throw new Error('No location available');
       }
+      // Captured rather than read from state later: by the time the pinning
+      // effect runs, GPS may have moved activeLocation, and pinning a location
+      // the search never used would re-key the query into an extra call.
+      lastSearchedRef.current = { center: searchLocation, radius: searchRadius };
       return fetchRestaurants(
         searchLocation.lat,
         searchLocation.lng,
         activeLocation.lat,
         activeLocation.lng,
         searchRadius,
-        mapBounds
+        searchBounds
       );
     },
     enabled: searchLocation !== null && activeLocation !== null,
@@ -106,6 +124,15 @@ export function useRestaurants() {
     gcTime: Config.CACHE_TIME_NEARBY * 2,
     placeholderData: keepPreviousData,
   });
+
+  // Pin the area the automatic first search covered. Until this lands the query
+  // key follows activeLocation, so walking ~110m spends a Text Search call.
+  useEffect(() => {
+    if (!query.data || searchCenter) return;
+    const last = lastSearchedRef.current;
+    if (!last) return;
+    commitInitialArea(last.center, last.radius);
+  }, [query.data, searchCenter, commitInitialArea]);
 
   // Accumulator: keeps every fetched restaurant so previously-visible markers
   // don't flicker between fetches. Reset when the user explicitly switches
@@ -136,11 +163,11 @@ export function useRestaurants() {
 
   const visibleRestaurants = useMemo(() => {
     const all = Array.from(accumulated.values());
-    const cullBounds = mapBounds ? padBounds(mapBounds) : null;
+    const cullBounds = viewBounds ? padBounds(viewBounds) : null;
     const culled = cullBounds ? all.filter((r) => isInBounds(r, cullBounds)) : all;
     const filtered = applyFilters(culled, filters);
     return sortRestaurants(filtered, filters.sortBy);
-  }, [accumulated, mapBounds, filters]);
+  }, [accumulated, viewBounds, filters]);
 
   return {
     restaurants: visibleRestaurants,

@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Theme } from '@/constants/Theme';
+import { AppTouchable } from '@/components/common/AppTouchable';
 import { useFilterStore } from '@/stores/filterStore';
 import { useMenuStore } from '@/stores/menuStore';
 import { useDialog } from '@/components/common/DialogProvider';
+import { UsageSummary } from '@/components/common/UsageChip';
 
 export default function AccountScreen() {
   const resetFilters = useFilterStore((s) => s.resetFilters);
@@ -54,23 +56,29 @@ export default function AccountScreen() {
           </View>
         </View>
 
+        {/* API usage */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Daily Searches</Text>
+          <UsageSummary />
+        </View>
+
         {/* Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
 
-          <TouchableOpacity style={styles.menuItem} onPress={resetFilters}>
+          <AppTouchable style={styles.menuItem} onPress={resetFilters}>
             <Feather name="sliders" size={18} color={Theme.colors.textSecondary} />
             <Text style={styles.menuItemText}>Reset Filters</Text>
             <Feather name="chevron-right" size={18} color={Theme.colors.textMuted} />
-          </TouchableOpacity>
+          </AppTouchable>
 
-          <TouchableOpacity style={styles.menuItem} onPress={handleClearData}>
+          <AppTouchable style={styles.menuItem} onPress={handleClearData}>
             <Feather name="trash-2" size={18} color={Theme.colors.error} />
             <Text style={[styles.menuItemText, { color: Theme.colors.error }]}>
               Clear All Data
             </Text>
             <Feather name="chevron-right" size={18} color={Theme.colors.textMuted} />
-          </TouchableOpacity>
+          </AppTouchable>
         </View>
 
         {/* About */}

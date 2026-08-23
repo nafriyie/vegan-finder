@@ -5,12 +5,12 @@ import {
   StyleSheet,
   Text,
   RefreshControl,
-  TouchableOpacity,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Theme } from '@/constants/Theme';
+import { AppTouchable } from '@/components/common/AppTouchable';
 import { useLocation } from '@/hooks/useLocation';
 import { useRestaurants } from '@/hooks/useRestaurants';
 import { RestaurantCard } from '@/components/restaurant/RestaurantCard';
@@ -35,7 +35,7 @@ export default function ListScreen() {
           <Text style={styles.headerTitle}>Explore</Text>
           <View style={styles.headerActions}>
             {Platform.OS === 'web' && (
-              <TouchableOpacity
+              <AppTouchable
                 style={styles.locationButton}
                 onPress={() => refetch()}
                 disabled={isRefetching}
@@ -50,14 +50,14 @@ export default function ListScreen() {
                       : Theme.colors.textPrimary
                   }
                 />
-              </TouchableOpacity>
+              </AppTouchable>
             )}
-            <TouchableOpacity
+            <AppTouchable
               style={styles.locationButton}
               onPress={() => setShowLocationModal(true)}
             >
               <Feather name="map-pin" size={20} color={Theme.colors.textPrimary} />
-            </TouchableOpacity>
+            </AppTouchable>
           </View>
         </View>
 
@@ -67,9 +67,9 @@ export default function ListScreen() {
             <Text style={styles.customLocationText} numberOfLines={1}>
               {customLocationName}
             </Text>
-            <TouchableOpacity onPress={clearCustomLocation} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <AppTouchable onPress={clearCustomLocation} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Feather name="x" size={14} color={Theme.colors.textSecondary} />
-            </TouchableOpacity>
+            </AppTouchable>
           </View>
         ) : (
           <Text style={styles.headerSubtitle}>

@@ -3,10 +3,10 @@ import {
   Text,
   StyleSheet,
   Image,
-  TouchableOpacity,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Theme } from '@/constants/Theme';
+import { AppTouchable } from '@/components/common/AppTouchable';
 import { useDialog } from '@/components/common/DialogProvider';
 import { formatPrice } from '@/lib/utils/formatting';
 import type { MenuItem } from '@/types/menu';
@@ -58,16 +58,16 @@ export function MenuItemCard({ item, onEdit, onDelete }: MenuItemCardProps) {
       {(onEdit || onDelete) && (
         <View style={styles.actions}>
           {onEdit && (
-            <TouchableOpacity
+            <AppTouchable
               onPress={() => onEdit(item)}
               style={styles.actionBtn}
             >
               <Feather name="edit-2" size={14} color={Theme.colors.textSecondary} />
               <Text style={styles.actionText}>Edit</Text>
-            </TouchableOpacity>
+            </AppTouchable>
           )}
           {onDelete && (
-            <TouchableOpacity
+            <AppTouchable
               onPress={handleDelete}
               style={styles.actionBtn}
             >
@@ -75,7 +75,7 @@ export function MenuItemCard({ item, onEdit, onDelete }: MenuItemCardProps) {
               <Text style={[styles.actionText, { color: Theme.colors.error }]}>
                 Delete
               </Text>
-            </TouchableOpacity>
+            </AppTouchable>
           )}
         </View>
       )}

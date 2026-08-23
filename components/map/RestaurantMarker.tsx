@@ -2,6 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Marker, Callout } from 'react-native-maps';
 import { useRouter } from 'expo-router';
 import { Theme } from '@/constants/Theme';
+import { getCuisineColor } from '@/lib/utils/cuisine';
 import { formatPriceLevel, formatRating } from '@/lib/utils/formatting';
 import type { Restaurant } from '@/types/restaurant';
 
@@ -11,6 +12,7 @@ interface RestaurantMarkerProps {
 
 export function RestaurantMarker({ restaurant }: RestaurantMarkerProps) {
   const router = useRouter();
+  const cuisineColor = getCuisineColor(restaurant);
 
   return (
     <Marker
@@ -21,12 +23,12 @@ export function RestaurantMarker({ restaurant }: RestaurantMarkerProps) {
       tracksViewChanges={false}
     >
       {/* Custom marker pin */}
-      <View style={styles.marker}>
+      <View style={[styles.marker, { backgroundColor: cuisineColor }]}>
         <Text style={styles.markerText}>
           {formatRating(restaurant.rating)}
         </Text>
       </View>
-      <View style={styles.markerArrow} />
+      <View style={[styles.markerArrow, { borderTopColor: cuisineColor }]} />
 
       {/* Callout on tap */}
       <Callout

@@ -21,6 +21,23 @@ interface RestaurantHeaderProps {
   restaurant: Restaurant;
 }
 
+/**
+ * Google Maps URL that resolves to the actual place card.
+ *
+ * Passing query_place_id is what makes Google Maps show the restaurant's name,
+ * hours and reviews. Without it you land on a bare dropped pin at the
+ * coordinates. Shared by every platform branch below — this used to be
+ * implemented only on iOS, so web opened raw coordinates.
+ */
+function buildGoogleMapsUrl(restaurant: Restaurant): string {
+  const label = encodeURIComponent(restaurant.name);
+  if (restaurant.googlePlaceId) {
+    return `https://www.google.com/maps/search/?api=1&query=${label}&query_place_id=${restaurant.googlePlaceId}`;
+  }
+  const { lat, lng } = restaurant.location;
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+}
+
 export function RestaurantHeader({ restaurant }: RestaurantHeaderProps) {
   // Read at render time so the carousel reflows on rotate/resize.
   const { width: screenWidth } = useWindowDimensions();
@@ -42,12 +59,10 @@ export function RestaurantHeader({ restaurant }: RestaurantHeaderProps) {
   const handleDirections = () => {
     const { lat, lng } = restaurant.location;
     const label = encodeURIComponent(restaurant.name);
+    const googleMapsUrl = buildGoogleMapsUrl(restaurant);
 
     if (Platform.OS === 'ios') {
       const appleMapsUrl = `maps:0,0?q=${label}@${lat},${lng}`;
-      const googleMapsUrl = restaurant.googlePlaceId
-        ? `https://www.google.com/maps/search/?api=1&query=${label}&query_place_id=${restaurant.googlePlaceId}`
-        : `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
       Alert.alert('Open Directions', 'Choose a maps app', [
         {
@@ -61,9 +76,10 @@ export function RestaurantHeader({ restaurant }: RestaurantHeaderProps) {
         { text: 'Cancel', style: 'cancel' },
       ]);
     } else if (Platform.OS === 'android') {
+      // q= the place name so the pin is labelled rather than a bare coordinate.
       Linking.openURL(`geo:${lat},${lng}?q=${lat},${lng}(${label})`);
     } else {
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+      Linking.openURL(googleMapsUrl);
     }
   };
 

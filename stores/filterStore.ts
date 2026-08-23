@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { FilterState } from '@/types/filters';
 import { SortOption, DEFAULT_FILTERS } from '@/types/filters';
 import { PriceLevel } from '@/types/restaurant';
+import { CUISINE_TYPES } from '@/constants/Cuisines';
 
 interface FilterStore extends FilterState {
   setCuisineTypes: (cuisines: string[]) => void;
@@ -53,6 +54,22 @@ export const useFilterStore = create<FilterStore>()(
     {
       name: 'vegan-finder-filters',
       storage: createJSONStorage(() => AsyncStorage),
+      // v1 collapsed 23 fine-grained cuisines into 12 groups. A saved filter
+      // like "Japanese" would otherwise match nothing forever, with no chip
+      // left in the UI to clear it.
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as FilterState;
+        if (version < 1) {
+          return {
+            ...state,
+            cuisineTypes: (state.cuisineTypes ?? []).filter((c) =>
+              (CUISINE_TYPES as readonly string[]).includes(c)
+            ),
+          };
+        }
+        return state;
+      },
     }
   )
 );

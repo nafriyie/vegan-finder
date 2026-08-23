@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Theme } from '@/constants/Theme';
 import { CUISINE_TYPES } from '@/constants/Cuisines';
+import { getCuisineColorByName } from '@/lib/utils/cuisine';
 
 interface CuisineFilterProps {
   visible: boolean;
@@ -43,6 +44,14 @@ export function CuisineFilter({
                     ]}
                     onPress={() => onToggle(cuisine)}
                   >
+                    {/* Doubles as the map's colour legend. */}
+                    <View
+                      style={[
+                        styles.swatch,
+                        { backgroundColor: getCuisineColorByName(cuisine) },
+                        isSelected && styles.swatchActive,
+                      ]}
+                    />
                     <Text
                       style={[
                         styles.chipText,
@@ -103,12 +112,24 @@ const styles = StyleSheet.create({
     gap: Theme.spacing.sm,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: Theme.spacing.md,
     paddingVertical: Theme.spacing.sm,
     borderRadius: Theme.borderRadius.full,
     borderWidth: 1,
     borderColor: Theme.colors.border,
     backgroundColor: Theme.colors.white,
+  },
+  swatch: {
+    width: 10,
+    height: 10,
+    borderRadius: Theme.borderRadius.full,
+  },
+  swatchActive: {
+    borderWidth: 1,
+    borderColor: Theme.colors.white,
   },
   chipActive: {
     backgroundColor: Theme.colors.primary,

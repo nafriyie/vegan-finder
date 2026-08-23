@@ -7,6 +7,7 @@ import { Theme } from '@/constants/Theme';
 import { Config } from '@/constants/Config';
 import { useLocation } from '@/hooks/useLocation';
 import { useRestaurants } from '@/hooks/useRestaurants';
+import { useSearchArea } from '@/hooks/useSearchArea';
 import { useLocationStore } from '@/stores/locationStore';
 import { RestaurantMarker } from '@/components/map/RestaurantMarker';
 import { FilterBar } from '@/components/filters/FilterBar';
@@ -26,7 +27,8 @@ export default function MapScreen() {
   const { activeLocation, permissionStatus, isUsingCustomLocation, customLocationName, clearCustomLocation } =
     useLocation();
   const { restaurants, isLoading } = useRestaurants();
-  const setMapView = useLocationStore((s) => s.setMapView);
+  const setViewport = useLocationStore((s) => s.setViewport);
+  const { canSearchHere, searchHere } = useSearchArea(activeLocation);
   const [showLocationModal, setShowLocationModal] = useState(false);
 
   useEffect(() => {
@@ -58,9 +60,11 @@ export default function MapScreen() {
         Math.hypot(latMeters, lngMeters) / 2,
         Config.MAX_SEARCH_RADIUS
       );
-      setMapView({ lat: latitude, lng: longitude }, radius, bounds);
+      // Records where the user is looking. Deliberately does not fetch — see
+      // useRestaurants and the "Search this area" button below.
+      setViewport({ lat: latitude, lng: longitude }, radius, bounds);
     },
-    [setMapView]
+    [setViewport]
   );
 
   return (
@@ -133,6 +137,18 @@ export default function MapScreen() {
           </MapView>
         )}
 
+        {/* Spend an API call on the area the user is actually looking at */}
+        {canSearchHere && (
+          <TouchableOpacity
+            style={styles.searchAreaButton}
+            onPress={searchHere}
+            accessibilityLabel="Search this area for vegan restaurants"
+          >
+            <Feather name="search" size={14} color={Theme.colors.white} />
+            <Text style={styles.searchAreaText}>Search this area</Text>
+          </TouchableOpacity>
+        )}
+
         {isLoading && (
           <View style={styles.loadingOverlay}>
             <LoadingSpinner message="Finding vegan spots..." />
@@ -197,6 +213,24 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  searchAreaButton: {
+    position: 'absolute',
+    top: Theme.spacing.md,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.xs,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    borderRadius: Theme.borderRadius.full,
+    backgroundColor: Theme.colors.primary,
+    ...Theme.shadow.md,
+  },
+  searchAreaText: {
+    fontSize: Theme.fontSize.sm,
+    fontWeight: Theme.fontWeight.semibold,
+    color: Theme.colors.white,
   },
   loadingOverlay: {
     position: 'absolute',
